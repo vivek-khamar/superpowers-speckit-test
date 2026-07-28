@@ -32,7 +32,14 @@ public class JwtService {
                 .claim("roles", roles)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(expiry)))
-                .signWith(key)
+                // Explicit algorithm, not the single-arg .signWith(key): jjwt's
+                // Keys.hmacShaKeyFor() auto-selects HS256/HS384/HS512 based on
+                // the secret's BYTE LENGTH (32-47 -> HS256, 48-63 -> HS384,
+                // 64+ -> HS512), and single-arg signWith() follows that
+                // auto-negotiated algorithm rather than pinning HS256 --
+                // confirmed empirically to actually misfire (HS384) with a
+                // 54-byte secret before this fix.
+                .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }
 
