@@ -1,1 +1,5 @@
 .claude/.quality-gates-last-verified
+.worktrees/
+target/
+.idea/
+*.iml
