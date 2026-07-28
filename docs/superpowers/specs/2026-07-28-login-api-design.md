@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-28
 **Source:** Jira DEMO-2 — "Implement login functionality"
-**Status:** Drafted (pending clarification)
+**Status:** Clarified (ready for planning)
 
 ## Overview
 
@@ -11,8 +11,35 @@ password, issues a signed JWT on success (delivered as an `HttpOnly` cookie,
 not in the response body), rejects invalid credentials uniformly (no
 account-enumeration signal), and locks out an identity after repeated
 failures. This is a standalone project with no prior signup/user-creation
-work — how (or whether) this ticket establishes the user records it
-authenticates against is an open question captured below, not guessed at.
+work, so this ticket also includes a minimal User entity and a seeded test
+user (resolved below in Clarifications) rather than assuming persistence
+that doesn't exist yet.
+
+## Clarifications
+
+### Session 2026-07-28
+
+- Q: What tech stack should this login API target? → A: Same as DEMO-1 —
+  Java 21, Spring Boot 3.3.x, Maven, PostgreSQL + Flyway.
+- Q: Since there's no existing signup flow, how should login get real user
+  records to authenticate against? → A: Include a minimal User entity +
+  repository + one Flyway migration seeding a fixed test user with a known
+  BCrypt hash — just enough to make login testable end-to-end, without
+  building a full signup flow.
+- Q: The "5 times within a rolling window" lockout trigger — rolling window
+  or unbounded count since last success? → A: Unbounded count since last
+  success. Only the resulting lockout duration (15 minutes) is time-bound;
+  the failure count itself has no separate time window.
+- Q: Where should the per-identity failure counter and lockout state live —
+  Redis or a database-backed counter? → A: Database-backed counter on the
+  User row itself (e.g. `failed_attempts`, `locked_until` columns) — no new
+  infrastructure dependency, transactionally consistent with the existing
+  database.
+- Q: How should the JWT be signed — HS256 with a configured secret, or
+  RS256 with a generated keypair? → A: HS256 with a secret read from
+  configuration (env var, with a default dev value in application.yml) —
+  sessions survive restarts, no multi-service verification requirement
+  exists to justify RS256's added complexity.
 
 ## User Scenarios & Testing
 
@@ -97,49 +124,56 @@ authenticates against is an open question captured below, not guessed at.
   counter.
 - **FR-9:** The system MUST log failed-attempt security events with the
   target identity masked, and MUST NOT log raw passwords anywhere.
-- **FR-10 (open):** `[NEEDS CLARIFICATION: this project has no prior
-  signup/user-creation work — does this ticket also need to establish a
-  minimal User entity/schema and a way to seed at least one real user for
-  login to be testable end-to-end, or is user persistence assumed to
-  already exist / out of scope for this ticket?]`
-- **FR-11 (open):** `[NEEDS CLARIFICATION: the 5-failure count — is it a
-  rolling time window (e.g. only failures within the last N minutes count
-  toward 5), or unbounded-in-time consecutive failures since the last
-  success, with only the resulting LOCKOUT duration being time-bound at
-  15 minutes?]`
-- **FR-12 (open):** `[NEEDS CLARIFICATION: lockout counter storage — the
-  ticket explicitly offers two options: Redis, or an internal
-  database-backed counter/flag. Neither is specified as default.]`
-- **FR-13 (open):** `[NEEDS CLARIFICATION: JWT signing — secret source
-  (generated at app startup vs. a configured/persisted secret) and
-  algorithm (HS256 vs RS256)? Startup-generated invalidates all sessions on
-  every restart.]`
-- **FR-14 (open):** `[NEEDS CLARIFICATION: target tech stack — same as
-  DEMO-1 (Java 21, Spring Boot 3.3.x, Maven, PostgreSQL + Flyway), or
-  different? This is a separate, currently-empty repository.]`
+- **FR-10:** The system MUST include a minimal `User` entity (`id`, `email`
+  unique, `passwordHash`, `name`) persisted via JPA/Hibernate, plus a
+  Flyway migration seeding exactly one fixed test user with a known BCrypt
+  hash, so login is testable end-to-end without a signup flow (resolved in
+  Clarifications, Session 2026-07-28).
+- **FR-11:** The failure count for lockout purposes MUST be an unbounded
+  count of consecutive failures since the identity's last success (no
+  separate time window on the counting itself) — only the resulting
+  lockout duration is time-bound at 15 minutes (resolved in Clarifications,
+  Session 2026-07-28).
+- **FR-12:** The failure counter and lockout expiry MUST be stored as
+  columns on the `User` row itself (database-backed, not Redis) (resolved
+  in Clarifications, Session 2026-07-28).
+- **FR-13:** The JWT MUST be signed with HS256 using a secret read from
+  configuration (environment variable, with a default value for local/dev
+  use in `application.yml`) (resolved in Clarifications, Session
+  2026-07-28).
+- **FR-14:** The project MUST use Java 21, Spring Boot 3.3.x, Maven, and
+  PostgreSQL + Flyway — same stack as DEMO-1 (resolved in Clarifications,
+  Session 2026-07-28).
 
 ## Key Entities
 
-- **User** — `id`, `email` (unique), `passwordHash`, `name`. Exact
-  provenance depends on FR-10.
+- **User** — `id`, `email` (unique), `passwordHash`, `name`,
+  `failedAttempts` (int, default 0), `lockedUntil` (nullable timestamp).
+  Seeded with exactly one fixed test user via Flyway.
 - **JWT claims** — `sub` (user id), `roles` (list; no role/authorization
   system exists elsewhere yet, so defaulting to a single implicit role
-  unless FR-10's resolution says otherwise), `iat`, `exp`.
-- **Lockout State** — per-identity failure count + last-failure timestamp
-  (or equivalent), storage per FR-12.
+  `["USER"]`), `iat`, `exp` (24h from `iat`, matching the cookie's
+  `Max-Age`).
+- **Lockout State** — folded into the `User` row itself (`failedAttempts`,
+  `lockedUntil`), not a separate entity — per Clarifications.
 
 ## Global Constraints
 
-- **Framework:** Java / Spring Boot (Spring Security) — per Jira DEMO-2.
-  Exact version/build tool: `[NEEDS CLARIFICATION: FR-14]`.
+- **Framework:** Java 21 / Spring Boot 3.3.x (Spring Security for hashing,
+  JPA + Hibernate for persistence), built with Maven — per Jira DEMO-2 plus
+  Clarifications, Session 2026-07-28.
+- **Persistence:** PostgreSQL, schema managed via Flyway migrations
+  (including the seeded test user) — per Clarifications, Session
+  2026-07-28.
 - **Endpoint contract:** `POST /api/v1/auth/login`, request/response
   payload shapes and cookie format exactly as specified above — per Jira
   DEMO-2.
-- **Lockout:** 5 consecutive failures → `423` for 15 minutes — per Jira
-  DEMO-2; exact counting semantics per FR-11, storage per FR-12.
-- **JWT:** claims `sub`/`roles`/`iat`/`exp`, cookie
-  `Secure; HttpOnly; SameSite=Strict; Max-Age=86400` — per Jira DEMO-2;
-  signing details per FR-13.
+- **Lockout:** 5 consecutive failures (unbounded count since last success)
+  → `423` for 15 minutes, database-backed on the `User` row — per Jira
+  DEMO-2 plus Clarifications, Session 2026-07-28.
+- **JWT:** claims `sub`/`roles`/`iat`/`exp`, HS256 signed with a configured
+  secret, cookie `Secure; HttpOnly; SameSite=Strict; Max-Age=86400` — per
+  Jira DEMO-2 plus Clarifications, Session 2026-07-28.
 - **Out of scope for this spec (infrastructure-level, not app-code):** the
   ticket's TLS 1.3 mandate and p95 < 200ms latency target are deployment/
   infrastructure concerns, not something this endpoint's code can itself
@@ -150,12 +184,12 @@ authenticates against is an open question captured below, not guessed at.
 
 ## Review & Acceptance Checklist
 
-- [ ] No unresolved `[NEEDS CLARIFICATION]` markers remain
-- [ ] All functional requirements are testable and unambiguous
-- [ ] User persistence provenance (FR-10) is defined
-- [ ] Lockout counting semantics (FR-11) and storage (FR-12) are defined
-- [ ] JWT signing approach (FR-13) is defined
-- [ ] Target tech stack (FR-14) is defined
+- [x] No unresolved `[NEEDS CLARIFICATION]` markers remain
+- [x] All functional requirements are testable and unambiguous
+- [x] User persistence provenance (FR-10) is defined
+- [x] Lockout counting semantics (FR-11) and storage (FR-12) are defined
+- [x] JWT signing approach (FR-13) is defined
+- [x] Target tech stack (FR-14) is defined
 - [x] Endpoint contract, payload shapes, cookie format, and status codes
       are defined
 - [x] Timing-safe / uniform failure response requirement is defined
