@@ -11,7 +11,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -60,7 +59,7 @@ class LoginControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.errorCode").value("AUTH_FAILED"))
-                .andExpect(jsonPath("$.message").value(containsString("Invalid email or password")));
+                .andExpect(jsonPath("$.message").value("Invalid email or password."));
     }
 
     @Test
@@ -71,7 +70,7 @@ class LoginControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.errorCode").value("AUTH_FAILED"))
-                .andExpect(jsonPath("$.message").value(containsString("Invalid email or password")));
+                .andExpect(jsonPath("$.message").value("Invalid email or password."));
     }
 
     @Test
