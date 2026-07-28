@@ -4,6 +4,3 @@ target/
 .idea/
 *.iml
 .superpowers/
-target/
-.idea/
-*.iml

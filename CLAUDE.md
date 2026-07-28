@@ -68,7 +68,7 @@ subagent's.
 
 A project-level Stop hook (`.claude/hooks/enforce-quality-gates.sh`)
 auto-detects this project's ecosystem and runs its standard test+lint
-command ((none detected)) before a turn is allowed to end, whenever a
+command (`mvn verify`) before a turn is allowed to end, whenever a
 relevant file has changed since the last time it passed. On failure, fix
 exactly what's reported — don't refactor beyond it, don't reach for
 `/simplify` or a subagent to make it pass, and don't weaken the gate itself
