@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: login-api
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:login}
+    username: ${DB_USER:login}
+    password: ${DB_PASSWORD:login}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: ${PORT:8080}
+
+login:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-in-production-32bytes-minimum}
+    expiry-seconds: 86400
+  lockout:
+    max-attempts: 5
+    duration-minutes: 15
