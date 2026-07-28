@@ -53,13 +53,21 @@ class LoginControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void wrongPasswordReturns401WithGenericBody() throws Exception {
-        String body = objectMapper.writeValueAsString(
-                new LoginRequest("testuser@example.com", "wrong-password"));
+        String email = "wrong-password-target@example.com";
+        User user = new User(email, passwordEncoder.encode("RealPassword123!"), "Wrong Password Target");
+        userRepository.save(user);
 
-        mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(body))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.errorCode").value("AUTH_FAILED"))
-                .andExpect(jsonPath("$.message").value("Invalid email or password."));
+        try {
+            String body = objectMapper.writeValueAsString(
+                    new LoginRequest(email, "wrong-password"));
+
+            mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(body))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.errorCode").value("AUTH_FAILED"))
+                    .andExpect(jsonPath("$.message").value("Invalid email or password."));
+        } finally {
+            userRepository.deleteById(user.getId());
+        }
     }
 
     @Test
@@ -89,17 +97,62 @@ class LoginControllerIntegrationTest extends AbstractIntegrationTest {
         User user = new User(email, passwordEncoder.encode("RealPassword123!"), "Lockout Target");
         userRepository.save(user);
 
-        String wrongBody = objectMapper.writeValueAsString(new LoginRequest(email, "wrong-password"));
-        for (int i = 0; i < 5; i++) {
-            mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(wrongBody))
-                    .andExpect(status().isUnauthorized());
+        try {
+            String wrongBody = objectMapper.writeValueAsString(new LoginRequest(email, "wrong-password"));
+            for (int i = 0; i < 5; i++) {
+                mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(wrongBody))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            String rightBody = objectMapper.writeValueAsString(new LoginRequest(email, "RealPassword123!"));
+            mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(rightBody))
+                    .andExpect(status().isLocked())
+                    .andExpect(jsonPath("$.errorCode").value("ACCOUNT_LOCKED"));
+        } finally {
+            userRepository.deleteById(user.getId());
         }
+    }
 
-        String rightBody = objectMapper.writeValueAsString(new LoginRequest(email, "RealPassword123!"));
-        mockMvc.perform(post("/api/v1/auth/login").contentType(APPLICATION_JSON).content(rightBody))
-                .andExpect(status().isLocked())
-                .andExpect(jsonPath("$.errorCode").value("ACCOUNT_LOCKED"));
+    @Test
+    void concurrentWrongPasswordAttemptsDoNotExceedTheLockoutThreshold() throws Exception {
+        String email = "concurrency-target@example.com";
+        User user = new User(email, passwordEncoder.encode("RealPassword123!"), "Concurrency Target");
+        userRepository.save(user);
 
-        userRepository.deleteById(user.getId());
+        int threadCount = 10;
+        java.util.concurrent.ExecutorService executorService =
+                java.util.concurrent.Executors.newFixedThreadPool(threadCount);
+
+        try {
+            String wrongBody = objectMapper.writeValueAsString(new LoginRequest(email, "wrong-password"));
+            java.util.concurrent.CountDownLatch startLatch = new java.util.concurrent.CountDownLatch(1);
+            java.util.concurrent.CountDownLatch doneLatch = new java.util.concurrent.CountDownLatch(threadCount);
+
+            for (int i = 0; i < threadCount; i++) {
+                executorService.submit(() -> {
+                    try {
+                        startLatch.await();
+                        mockMvc.perform(post("/api/v1/auth/login")
+                                .contentType(APPLICATION_JSON)
+                                .content(wrongBody));
+                    } catch (Exception ignored) {
+                        // Individual response status is irrelevant here; only the
+                        // final persisted failedAttempts count is asserted below.
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            startLatch.countDown();
+            doneLatch.await();
+
+            User reloaded = userRepository.findByEmailIgnoreCase(email).orElseThrow();
+            org.assertj.core.api.Assertions.assertThat(reloaded.getFailedAttempts()).isEqualTo(5);
+        } finally {
+            executorService.shutdown();
+            executorService.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS);
+            userRepository.deleteById(user.getId());
+        }
     }
 }

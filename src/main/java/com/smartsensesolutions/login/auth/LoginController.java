@@ -1,5 +1,6 @@
 package com.smartsensesolutions.login.auth;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -14,9 +15,12 @@ import java.time.Duration;
 public class LoginController {
 
     private final LoginService loginService;
+    private final Duration jwtExpiry;
 
-    public LoginController(LoginService loginService) {
+    public LoginController(LoginService loginService,
+                            @Value("${login.jwt.expiry-seconds:86400}") long expirySeconds) {
         this.loginService = loginService;
+        this.jwtExpiry = Duration.ofSeconds(expirySeconds);
     }
 
     @PostMapping("/api/v1/auth/login")
@@ -27,7 +31,7 @@ public class LoginController {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Strict")
-                .maxAge(Duration.ofSeconds(86400))
+                .maxAge(jwtExpiry)
                 .path("/")
                 .build();
 

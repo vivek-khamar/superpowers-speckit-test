@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -47,6 +48,13 @@ public class LoginService {
         this.lockoutDuration = Duration.ofMinutes(lockoutDurationMinutes);
     }
 
+    // noRollbackFor is required: AuthenticationFailedException is thrown right
+    // after userRepository.save() on the wrong-password path to record the
+    // incremented failure count / lockout. Without this, Spring's default
+    // rollback-on-unchecked-exception behavior would roll back that save the
+    // instant the exception propagates, silently discarding every recorded
+    // failed attempt and defeating the lockout counter entirely.
+    @Transactional(noRollbackFor = AuthenticationFailedException.class)
     public LoginResult login(LoginRequest request) {
         List<String> violations = validator.validate(request);
         if (!violations.isEmpty()) {
@@ -54,7 +62,7 @@ public class LoginService {
         }
 
         Instant now = Instant.now();
-        Optional<User> maybeUser = userRepository.findByEmailIgnoreCase(request.email());
+        Optional<User> maybeUser = userRepository.findByEmailIgnoreCaseForUpdate(request.email());
 
         if (maybeUser.isPresent() && maybeUser.get().isLockedOut(now)) {
             throw new AccountLockedException();
@@ -91,8 +99,11 @@ public class LoginService {
     // itself a plaintext record of every email address that attempted login.
     private String maskIdentity(String email) {
         int at = email.indexOf('@');
+        if (at < 0) {
+            return "***";
+        }
         if (at <= 1) {
-            return "***" + email.substring(Math.max(at, 0));
+            return "***" + email.substring(at);
         }
         return email.charAt(0) + "***" + email.substring(at);
     }

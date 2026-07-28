@@ -47,7 +47,7 @@ class LoginServiceTest {
     @Test
     void successfulLoginResetsFailuresAndIssuesAToken() {
         User user = User.existing(7L, "ada@example.com", "hashed-value", "Ada Lovelace", 3, null);
-        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCaseForUpdate("ada@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("correct-password", "hashed-value")).thenReturn(true);
         when(jwtService.generateToken(7L, List.of("USER"))).thenReturn("signed.jwt.token");
 
@@ -66,7 +66,7 @@ class LoginServiceTest {
     @Test
     void wrongPasswordIncrementsFailuresAndThrowsAuthFailed() {
         User user = User.existing(7L, "ada@example.com", "hashed-value", "Ada Lovelace", 0, null);
-        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCaseForUpdate("ada@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         assertThatThrownBy(() -> loginService.login(new LoginRequest("ada@example.com", "wrong")))
@@ -80,7 +80,7 @@ class LoginServiceTest {
     @Test
     void fifthConsecutiveFailureLocksTheAccount() {
         User user = User.existing(7L, "ada@example.com", "hashed-value", "Ada Lovelace", 4, null);
-        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCaseForUpdate("ada@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         assertThatThrownBy(() -> loginService.login(new LoginRequest("ada@example.com", "wrong")))
@@ -96,7 +96,7 @@ class LoginServiceTest {
     void lockedAccountThrowsAccountLockedWithoutCheckingPassword() {
         User user = User.existing(7L, "ada@example.com", "hashed-value", "Ada Lovelace", 5,
                 Instant.now().plusSeconds(600));
-        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCaseForUpdate("ada@example.com")).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> loginService.login(new LoginRequest("ada@example.com", "irrelevant")))
                 .isInstanceOf(AccountLockedException.class);
@@ -107,7 +107,7 @@ class LoginServiceTest {
 
     @Test
     void unknownEmailStillRunsARealPasswordComparisonAndThrowsAuthFailed() {
-        when(userRepository.findByEmailIgnoreCase("nobody@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCaseForUpdate("nobody@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         assertThatThrownBy(() -> loginService.login(new LoginRequest("nobody@example.com", "anything")))
