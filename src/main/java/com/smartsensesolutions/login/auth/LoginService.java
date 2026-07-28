@@ -23,7 +23,7 @@ public class LoginService {
     // doesn't match a real user, so an unknown-email attempt costs the same
     // BCrypt computation as a wrong-password attempt on a real account —
     // otherwise the two cases would be distinguishable by response time.
-    private static final String DUMMY_HASH =
+    static final String DUMMY_HASH =
             "$2y$10$tcqCU9d4fhTLgFvvjH4QoOaY7jQZIX45nkCVWOYI7Bcte7sPCGxbS";
 
     private final UserRepository userRepository;

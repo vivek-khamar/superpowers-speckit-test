@@ -9,6 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
@@ -124,5 +125,19 @@ class LoginServiceTest {
                 .isInstanceOf(LoginValidationException.class);
 
         Mockito.verifyNoInteractions(userRepository, passwordEncoder, jwtService);
+    }
+
+    @Test
+    void dummyHashIsAValidBCryptHashARealEncoderCanCompareWithoutThrowing() {
+        // Regression guard: DUMMY_HASH must remain a syntactically valid,
+        // parseable BCrypt hash. If it's ever edited to something malformed
+        // or a different format, a real BCryptPasswordEncoder would throw on
+        // every unknown-email login attempt instead of just returning false —
+        // reintroducing the timing side-channel this constant exists to close.
+        PasswordEncoder realEncoder = new BCryptPasswordEncoder();
+
+        boolean matches = realEncoder.matches("anything", LoginService.DUMMY_HASH);
+
+        assertThat(matches).isFalse();
     }
 }
