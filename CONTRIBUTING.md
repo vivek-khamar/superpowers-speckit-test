@@ -18,8 +18,8 @@ run.
 This endpoint authenticates a user with an `email` and `password` in the
 JSON request body. On success it returns `200 OK` with a JSON body
 containing `status`, `message`, and a `user` summary (`id`, `email`,
-`name`), and sets the JWT as an `HttpOnly` cookie rather than returning it
-in the body. On failure it returns one of three status codes: `400` when
+`name`), and sets the JWT as an `HttpOnly`, `Secure`, `SameSite=Strict`
+cookie named `jwt` rather than returning it in the body. On failure it returns one of three status codes: `400` when
 the request fails validation (missing/blank `email` or `password`, or a
 malformed email), `401` when the credentials don't match any account
 (identical response whether the email is unknown or the password is

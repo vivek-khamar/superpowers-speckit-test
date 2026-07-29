@@ -112,10 +112,10 @@ Not applicable — no data model changes.
 - [x] Scope resolved: exactly the three ticket acceptance-criteria bullets,
       no app-run instructions (FR-7).
 - [x] API contract format resolved: prose-only, one paragraph (FR-6).
-- [ ] `CONTRIBUTING.md` exists at repo root.
-- [ ] Test command (`mvn test`) documented exactly.
-- [ ] JDK 21 prerequisite stated explicitly.
-- [ ] Docker/Testcontainers prerequisite stated explicitly.
-- [ ] `POST /api/v1/auth/login` contract documented (request, success,
+- [x] `CONTRIBUTING.md` exists at repo root.
+- [x] Test command (`mvn test`) documented exactly.
+- [x] JDK 21 prerequisite stated explicitly.
+- [x] Docker/Testcontainers prerequisite stated explicitly.
+- [x] `POST /api/v1/auth/login` contract documented (request, success,
       400/401/423).
-- [ ] No existing file modified.
+- [x] No existing file modified.

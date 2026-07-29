@@ -26,7 +26,7 @@
 - Consumes: nothing (first and only task).
 - Produces: `CONTRIBUTING.md` at repo root — the deliverable itself; no other task depends on it.
 
-- [ ] **Step 1: Write `CONTRIBUTING.md`**
+- [x] **Step 1: Write `CONTRIBUTING.md`**
 
 Create `CONTRIBUTING.md` at the repository root with exactly this content:
 
@@ -60,7 +60,7 @@ wrong, so callers can't distinguish the two), or `423` when the account is
 currently locked out after too many consecutive failed attempts.
 ```
 
-- [ ] **Step 2: Verify the file's content against the acceptance criteria**
+- [x] **Step 2: Verify the file's content against the acceptance criteria**
 
 Run: `cat CONTRIBUTING.md`
 
@@ -73,14 +73,14 @@ satisfies all three ticket acceptance criteria:
    shape, success response, and all three failure codes (400/401/423)
    with what triggers each.
 
-- [ ] **Step 3: Verify no existing file was modified**
+- [x] **Step 3: Verify no existing file was modified**
 
 Run: `git status --porcelain`
 
 Expected: exactly one line, `?? CONTRIBUTING.md` (untracked, new file) —
 no `M` (modified) lines for any other path.
 
-- [ ] **Step 4: Run the project's standard quality gate**
+- [x] **Step 4: Run the project's standard quality gate**
 
 Run: `mvn verify`
 
@@ -89,7 +89,7 @@ broken anything (it shouldn't touch any code path, but this is the
 project's standard gate per CLAUDE.md and must pass before the branch is
 considered done).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add CONTRIBUTING.md
