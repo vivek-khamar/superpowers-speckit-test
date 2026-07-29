@@ -61,6 +61,26 @@ detect() {
 detect
 [ -z "$CMD" ] && { echo '{"decision": "allow"}'; exit 0; }
 
+# Skip on a clean base-branch checkout (main/master/develop, nothing
+# uncommitted at all -- not just within $WATCH). This is the window before
+# a ticket's worktree/branch exists yet, or right after one was merged and
+# cleaned up: gating a completely clean base branch against its own
+# possibly-already-broken state (pre-existing repo debt this turn didn't
+# create) would block turns for reasons unrelated to anything being worked
+# on. A dirty base branch (someone deliberately working in place, having
+# declined a worktree) is NOT skipped -- their real edits still get gated.
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
+if [ -n "$CURRENT_BRANCH" ]; then
+  case "$CURRENT_BRANCH" in
+    main|master|develop)
+      if [ -z "$(git status --porcelain 2>/dev/null)" ]; then
+        echo '{"decision": "allow"}'
+        exit 0
+      fi
+      ;;
+  esac
+fi
+
 MARKER=.claude/.quality-gates-last-verified
 LAST_SHA=$(cat "$MARKER" 2>/dev/null || echo "")
 CURRENT_SHA=$(git rev-parse HEAD 2>/dev/null)

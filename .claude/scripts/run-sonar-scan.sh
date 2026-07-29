@@ -15,6 +15,7 @@
 # configured. To enable, create a gitignored .env in the project root:
 #   SONAR_HOST_URL=http://localhost:9000
 #   SONAR_TOKEN=<your-token>
+#   SONAR_PROJECT_KEY=<optional -- defaults to the repo name if unset>
 #
 # Currently supports Maven projects only (pom.xml). Other ecosystems print
 # a clear "not yet supported" message and exit 0 rather than silently doing
@@ -45,15 +46,21 @@ MVN="mvn"
 [ -x ./mvnw ] && MVN="./mvnw"
 REPORT_TASK="target/sonar/report-task.txt"
 
-# Project key/name default to the repo name (from its git remote), falling
-# back to the working directory name -- never the Maven module's
-# artifactId, which is often shorter/less identifying than the actual repo
-# (e.g. a single-module repo named "login-api" inside a monorepo-style
-# checkout would otherwise collide with every other project also named
-# "login-api"). Passed as -D overrides so no pom.xml edits are ever needed
-# for this to be correct.
-PROJECT_NAME=$(git config --get remote.origin.url 2>/dev/null | xargs -I{} basename {} .git)
-[ -z "$PROJECT_NAME" ] && PROJECT_NAME=$(basename "$(pwd)")
+# Project key/name: SONAR_PROJECT_KEY (set in .env) wins if present, for
+# teams with an existing Sonar naming convention (e.g. groupId:artifactId,
+# or an org-wide scheme that doesn't match the repo name). Otherwise default
+# to the repo name (from its git remote), falling back to the working
+# directory name -- never the Maven module's artifactId, which is often
+# shorter/less identifying than the actual repo (e.g. a single-module repo
+# named "login-api" inside a monorepo-style checkout would otherwise
+# collide with every other project also named "login-api"). Passed as -D
+# overrides so no pom.xml edits are ever needed for this to be correct.
+if [ -n "${SONAR_PROJECT_KEY:-}" ]; then
+  PROJECT_NAME="$SONAR_PROJECT_KEY"
+else
+  PROJECT_NAME=$(git config --get remote.origin.url 2>/dev/null | xargs -I{} basename {} .git)
+  [ -z "$PROJECT_NAME" ] && PROJECT_NAME=$(basename "$(pwd)")
+fi
 
 # `verify` and `sonar:sonar` run together, in one reactor invocation, so the
 # JaCoCo coverage report (bound to the `test` phase) is freshly generated
