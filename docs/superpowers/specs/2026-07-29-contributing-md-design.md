@@ -2,7 +2,25 @@
 
 **Date:** 2026-07-29
 **Source:** Jira DEMO-6 — "Add a CONTRIBUTING.md documenting local test commands"
-**Status:** Draft (pending clarification)
+**Status:** Clarified (ready for planning)
+
+## Clarifications
+
+### Session 2026-07-29
+
+- Q: Should the API contract paragraph include concrete JSON examples, or
+  stay prose-only? → A: Prose-only, matching the ticket's explicit "one
+  paragraph" instruction — field names and status codes referenced inline
+  in text, no separate JSON code blocks. Resolved directly from the
+  ticket's own wording (not escalated — a self-evident reading, not a
+  competing-tradeoff judgment call).
+- Q: Does "documenting local test commands" extend to instructions for
+  running the app locally (e.g. `docker-compose up`, `mvn
+  spring-boot:run`)? → A: No. The ticket's three acceptance-criteria
+  bullets are exhaustive and specific (file exists; test command +
+  prerequisites; API contract) with no mention of running the app —
+  scope is strictly those three. Resolved directly from the ticket's
+  explicit acceptance criteria (not escalated).
 
 ## Overview
 
@@ -72,14 +90,11 @@ pipeline (`pipeline/scripts/run-headless.sh`) end-to-end for the first time.
   `password`), the success response (status code and body shape), and the
   three failure status codes (400, 401, 423) with a brief note on what
   triggers each.
-- **FR-6**: [NEEDS CLARIFICATION: should the API contract paragraph include
-  concrete JSON examples (request/response bodies), or stay prose-only as
-  literally "one paragraph" implies?]
-- **FR-7**: [NEEDS CLARIFICATION: does "documents... local test commands"
-  extend to how to run the app locally (e.g. `docker-compose up` for
-  Postgres, `mvn spring-boot:run`), or is scope strictly limited to the
-  test command + prerequisites + API contract as enumerated in the
-  ticket's acceptance criteria?]
+- **FR-6**: The API contract section MUST be prose-only (one paragraph,
+  per the ticket) — no separate JSON code blocks.
+- **FR-7**: Scope MUST be limited to exactly the three ticket
+  acceptance-criteria bullets (file exists; test command + prerequisites;
+  API contract) — no instructions for running the app locally.
 
 ## Key Entities
 
@@ -94,6 +109,9 @@ Not applicable — no data model changes.
 
 ## Review & Acceptance Checklist
 
+- [x] Scope resolved: exactly the three ticket acceptance-criteria bullets,
+      no app-run instructions (FR-7).
+- [x] API contract format resolved: prose-only, one paragraph (FR-6).
 - [ ] `CONTRIBUTING.md` exists at repo root.
 - [ ] Test command (`mvn test`) documented exactly.
 - [ ] JDK 21 prerequisite stated explicitly.
