@@ -45,6 +45,16 @@ MVN="mvn"
 [ -x ./mvnw ] && MVN="./mvnw"
 REPORT_TASK="target/sonar/report-task.txt"
 
+# Project key/name default to the repo name (from its git remote), falling
+# back to the working directory name -- never the Maven module's
+# artifactId, which is often shorter/less identifying than the actual repo
+# (e.g. a single-module repo named "login-api" inside a monorepo-style
+# checkout would otherwise collide with every other project also named
+# "login-api"). Passed as -D overrides so no pom.xml edits are ever needed
+# for this to be correct.
+PROJECT_NAME=$(git config --get remote.origin.url 2>/dev/null | xargs -I{} basename {} .git)
+[ -z "$PROJECT_NAME" ] && PROJECT_NAME=$(basename "$(pwd)")
+
 # `verify` and `sonar:sonar` run together, in one reactor invocation, so the
 # JaCoCo coverage report (bound to the `test` phase) is freshly generated
 # in this same build before the scanner reads it. Running `sonar:sonar`
@@ -53,8 +63,12 @@ REPORT_TASK="target/sonar/report-task.txt"
 # the scan itself succeeds. If this project needs JAVA_HOME/DOCKER_HOST
 # overrides for its test suite, the caller must export them before
 # invoking this script -- never baked in here.
-echo "==> Running tests + SonarQube scan ($MVN verify sonar:sonar)..."
-if ! $MVN -q verify sonar:sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"; then
+echo "==> Running tests + SonarQube scan for '$PROJECT_NAME' ($MVN verify sonar:sonar)..."
+if ! $MVN -q verify sonar:sonar \
+    -Dsonar.host.url="$SONAR_HOST_URL" \
+    -Dsonar.token="$SONAR_TOKEN" \
+    -Dsonar.projectKey="$PROJECT_NAME" \
+    -Dsonar.projectName="$PROJECT_NAME"; then
   echo "Build or scan submission failed -- see output above. Not blocking; review manually."
   exit 0
 fi

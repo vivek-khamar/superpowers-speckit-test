@@ -20,8 +20,6 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <sonar.projectKey>superpowers-speckit-test</sonar.projectKey>
-        <sonar.projectName>superpowers-speckit-test</sonar.projectName>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
