@@ -1,4 +1,6 @@
 .claude/.quality-gates-last-verified
+.claude/.sessions/
+.claude/worktrees/
 .worktrees/
 target/
 .idea/
