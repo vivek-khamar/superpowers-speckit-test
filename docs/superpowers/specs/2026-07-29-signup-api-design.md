@@ -4,6 +4,17 @@
 **Source:** Jira DEMO-1 — "Implement signup functionality"
 **Status:** Draft (pending clarification)
 
+## Clarifications
+
+### Session 2026-07-29
+
+- Q: The ticket doesn't enumerate which characters count as "special" for
+  the password complexity rule, and there's no existing precedent in this
+  codebase (DEMO-2's login only checks presence, not complexity). This is
+  a validation-detail choice, not an architectural one, so resolved
+  directly rather than escalated. → A: Use the standard OWASP-style
+  punctuation/symbol set: `` !@#$%^&*()_+-=[]{};':"\|,.<>/? ``.
+
 ## Overview
 
 Expose a `POST /api/v1/auth/signup` endpoint that lets a new user register
@@ -59,14 +70,10 @@ its one test user via a Flyway migration, not an API).
   are missing.
 - **Given** a request whose `email` fails format validation, or whose
   `password` fails complexity rules (minimum 8 characters, at least 1
-  uppercase letter, 1 number, 1 special character), **when** the client
-  posts, **then** the backend returns `400 Bad Request` with every failed
-  constraint listed in one response (not just the first one found)
-  [NEEDS CLARIFICATION: the ticket doesn't enumerate which characters
-  count as "special" for the password rule. Existing code has no
-  precedent for this (DEMO-2's login only checks presence, not
-  complexity). Propose punctuation/symbol set
-  `` !@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/? `` — confirm or adjust.]
+  uppercase letter, 1 number, 1 special character from the set
+  `` !@#$%^&*()_+-=[]{};':"\|,.<>/? ``), **when** the client posts,
+  **then** the backend returns `400 Bad Request` with every failed
+  constraint listed in one response (not just the first one found).
 - **Given** more than 10 signup attempts from the same source IP within a
   1-minute window, **when** the 11th+ request arrives, **then** the
   backend returns `429 Too Many Requests` without processing the payload
@@ -102,8 +109,9 @@ its one test user via a Flyway migration, not an API).
 - **FR-3:** The system MUST validate `email` against the same format rule
   already used by the login endpoint's validator, and MUST validate
   `password` against complexity rules: minimum 8 characters, at least 1
-  uppercase letter, at least 1 digit, at least 1 special character
-  (exact character set: see Clarifications).
+  uppercase letter, at least 1 digit, at least 1 special character from
+  the set `` !@#$%^&*()_+-=[]{};':"\|,.<>/? `` (resolved in
+  Clarifications, Session 2026-07-29).
 - **FR-4:** On any validation failure, the system MUST return `400 Bad
   Request` listing every violated constraint in a single response, not
   just the first one encountered.
@@ -162,7 +170,8 @@ its one test user via a Flyway migration, not an API).
 ## Review & Acceptance Checklist
 
 - [ ] `userId` response field format confirmed (Clarifications)
-- [ ] Password "special character" set confirmed (Clarifications)
+- [x] Password "special character" set confirmed (Clarifications,
+      resolved directly — validation detail, not architectural)
 - [ ] Rate-limiter storage backing confirmed (Clarifications)
 - [x] Target table confirmed as `users` (resolved directly — existing
       schema precedent from DEMO-2 makes `employee_info` a non-option)
