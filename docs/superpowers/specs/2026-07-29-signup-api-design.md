@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-29
 **Source:** Jira DEMO-1 — "Implement signup functionality"
-**Status:** Draft (pending clarification)
+**Status:** Clarified (ready for planning)
 
 ## Clarifications
 
@@ -14,6 +14,16 @@
   a validation-detail choice, not an architectural one, so resolved
   directly rather than escalated. → A: Use the standard OWASP-style
   punctuation/symbol set: `` !@#$%^&*()_+-=[]{};':"\|,.<>/? ``.
+- Q: The ticket's example response shows `userId` as a formatted string
+  (`"usr_10293"`), but the existing `User` entity and DEMO-2's login
+  response both use a plain numeric `Long` id with no prefix scheme. →
+  A: Consistent with existing precedent — return the raw numeric `Long`
+  id, no `usr_` prefix.
+- Q: This deployment has no Redis or API gateway in front of it (single
+  instance per `docker-compose.yml`), and DEMO-2's lockout counters are
+  plain DB columns, not a request-rate limiter. Should the per-IP signup
+  limiter be a simple in-process in-memory counter, or a distributed/
+  shared store for multi-instance deployments? → A: In-memory counter.
 
 ## Overview
 
@@ -52,14 +62,8 @@ its one test user via a Flyway migration, not an API).
   system, **when** the client posts to `/api/v1/auth/signup`, **then** the
   backend hashes the password with `BCryptPasswordEncoder`, persists the
   user with `created_at`/`updated_at` set, and returns `201 Created` with
-  `{"status":"success","message":"User registered successfully.","userId":...}`
-  [NEEDS CLARIFICATION: the ticket's example shows `userId` as a formatted
-  string (`"usr_10293"`), but the existing `User` entity uses a plain
-  auto-increment `Long` id (matching DEMO-2's login response shape, which
-  returns a plain numeric `id`). Is the `usr_`-prefixed form a real
-  contract requirement, or just illustrative formatting in the ticket? This
-  determines the response DTO's field type and whether a new ID-formatting
-  scheme needs to be introduced.]
+  `{"status":"success","message":"User registered successfully.","userId":<number>}`
+  (plain numeric id, resolved in Clarifications, Session 2026-07-29).
 - **Given** a signup request whose email already exists in the `users`
   table, **when** the client posts to `/api/v1/auth/signup`, **then** the
   backend makes no database write and returns `409 Conflict` with
@@ -76,14 +80,9 @@ its one test user via a Flyway migration, not an API).
   constraint listed in one response (not just the first one found).
 - **Given** more than 10 signup attempts from the same source IP within a
   1-minute window, **when** the 11th+ request arrives, **then** the
-  backend returns `429 Too Many Requests` without processing the payload
-  [NEEDS CLARIFICATION: DEMO-2 introduced no rate-limiting infrastructure
-  (its lockout counters are DB columns on `User`, not a request-rate
-  limiter) and this deployment has no Redis or API gateway in front of it
-  per `docker-compose.yml`. Should the per-IP counter be a simple in-process
-  in-memory limiter (correct for a single instance, resets on restart), or
-  is a shared/distributed store expected because multiple instances are
-  planned? This affects whether the limiter survives horizontal scaling.]
+  backend returns `429 Too Many Requests` without processing the payload,
+  via an in-process in-memory per-IP counter (resolved in Clarifications,
+  Session 2026-07-29 — resets on restart, not shared across instances).
 
 ### Edge Cases
 
@@ -127,8 +126,10 @@ its one test user via a Flyway migration, not an API).
 - **FR-7:** On success, the system MUST persist the new user with
   `created_at` and `updated_at` timestamp columns set, and MUST return
   `201 Created` with
-  `{"status":"success","message":"User registered successfully.","userId":...}`
-  (exact `userId` field type/format: see Clarifications).
+  `{"status":"success","message":"User registered successfully.","userId":<number>}`
+  — a plain numeric `Long` id, consistent with the existing `User` entity
+  and DEMO-2's login response (resolved in Clarifications, Session
+  2026-07-29).
 - **FR-8:** The system MUST enforce the existing database-level unique
   constraint on email as the final authority against duplicate accounts,
   independent of the application-level pre-check in FR-5, and MUST map a
@@ -136,8 +137,9 @@ its one test user via a Flyway migration, not an API).
   `500`.
 - **FR-9:** The system MUST rate-limit `POST /api/v1/auth/signup` per
   source IP, returning `429 Too Many Requests` once that IP exceeds 10
-  attempts within a 1-minute rolling window (storage backing: see
-  Clarifications).
+  attempts within a 1-minute rolling window, backed by a simple
+  in-process in-memory counter — no Redis or other shared store (resolved
+  in Clarifications, Session 2026-07-29).
 - **FR-10:** The project MUST continue to use the existing stack (Java 21,
   Spring Boot 3.3.x, Maven, PostgreSQL + Flyway) and extend the existing
   `users` table (via a new Flyway migration) rather than introducing a
@@ -169,11 +171,13 @@ its one test user via a Flyway migration, not an API).
 
 ## Review & Acceptance Checklist
 
-- [ ] `userId` response field format confirmed (Clarifications)
+- [x] `userId` response field format confirmed (Clarifications — plain
+      numeric id)
 - [x] Password "special character" set confirmed (Clarifications,
       resolved directly — validation detail, not architectural)
-- [ ] Rate-limiter storage backing confirmed (Clarifications)
+- [x] Rate-limiter storage backing confirmed (Clarifications — in-memory
+      counter)
 - [x] Target table confirmed as `users` (resolved directly — existing
       schema precedent from DEMO-2 makes `employee_info` a non-option)
-- [ ] All functional requirements testable and unambiguous
-- [ ] No implementation details leaked into requirements
+- [x] All functional requirements testable and unambiguous
+- [x] No implementation details leaked into requirements
