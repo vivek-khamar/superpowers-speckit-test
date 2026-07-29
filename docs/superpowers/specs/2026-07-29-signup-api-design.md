@@ -15,10 +15,11 @@
   directly rather than escalated. → A: Use the standard OWASP-style
   punctuation/symbol set: `` !@#$%^&*()_+-=[]{};':"\|,.<>/? ``.
 - Q: The ticket's example response shows `userId` as a formatted string
-  (`"usr_10293"`), but the existing `User` entity and DEMO-2's login
-  response both use a plain numeric `Long` id with no prefix scheme. →
-  A: Consistent with existing precedent — return the raw numeric `Long`
-  id, no `usr_` prefix.
+  (`"usr_10293"`). Does this match existing precedent, or is it a plain
+  numeric id? → A: Consistent with existing precedent — checked
+  `LoginResponse.UserSummary`, which already formats its id as
+  `"usr_" + user.getId()`. Signup's `userId` MUST use the same
+  `"usr_" + id` string format, not a bare number.
 - Q: This deployment has no Redis or API gateway in front of it (single
   instance per `docker-compose.yml`), and DEMO-2's lockout counters are
   plain DB columns, not a request-rate limiter. Should the per-IP signup
@@ -62,8 +63,9 @@ its one test user via a Flyway migration, not an API).
   system, **when** the client posts to `/api/v1/auth/signup`, **then** the
   backend hashes the password with `BCryptPasswordEncoder`, persists the
   user with `created_at`/`updated_at` set, and returns `201 Created` with
-  `{"status":"success","message":"User registered successfully.","userId":<number>}`
-  (plain numeric id, resolved in Clarifications, Session 2026-07-29).
+  `{"status":"success","message":"User registered successfully.","userId":"usr_<id>"}`
+  — the `"usr_" + id` string format, matching `LoginResponse.UserSummary`
+  (resolved in Clarifications, Session 2026-07-29).
 - **Given** a signup request whose email already exists in the `users`
   table, **when** the client posts to `/api/v1/auth/signup`, **then** the
   backend makes no database write and returns `409 Conflict` with
@@ -126,9 +128,9 @@ its one test user via a Flyway migration, not an API).
 - **FR-7:** On success, the system MUST persist the new user with
   `created_at` and `updated_at` timestamp columns set, and MUST return
   `201 Created` with
-  `{"status":"success","message":"User registered successfully.","userId":<number>}`
-  — a plain numeric `Long` id, consistent with the existing `User` entity
-  and DEMO-2's login response (resolved in Clarifications, Session
+  `{"status":"success","message":"User registered successfully.","userId":"usr_<id>"}`
+  — the `"usr_" + id` string format already used by
+  `LoginResponse.UserSummary.id()` (resolved in Clarifications, Session
   2026-07-29).
 - **FR-8:** The system MUST enforce the existing database-level unique
   constraint on email as the final authority against duplicate accounts,
@@ -171,8 +173,8 @@ its one test user via a Flyway migration, not an API).
 
 ## Review & Acceptance Checklist
 
-- [x] `userId` response field format confirmed (Clarifications — plain
-      numeric id)
+- [x] `userId` response field format confirmed (Clarifications —
+      `"usr_" + id` string, matching `LoginResponse.UserSummary`)
 - [x] Password "special character" set confirmed (Clarifications,
       resolved directly — validation detail, not architectural)
 - [x] Rate-limiter storage backing confirmed (Clarifications — in-memory
