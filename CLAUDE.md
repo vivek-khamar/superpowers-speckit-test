@@ -68,8 +68,27 @@ subagent's.
 
 A project-level Stop hook (`.claude/hooks/enforce-quality-gates.sh`)
 auto-detects this project's ecosystem and runs its standard test+lint
-command ((none detected)) before a turn is allowed to end, whenever a
+command (`mvn verify`) before a turn is allowed to end, whenever a
 relevant file has changed since the last time it passed. On failure, fix
 exactly what's reported — don't refactor beyond it, don't reach for
 `/simplify` or a subagent to make it pass, and don't weaken the gate itself
 to get green.
+
+## Pre-merge SonarQube scan (optional)
+
+This project has a gitignored `.env` with `SONAR_HOST_URL`/`SONAR_TOKEN`
+configured (local server at `http://localhost:9000`). Run
+`.claude/scripts/run-sonar-scan.sh` as part of
+`superpowers:finishing-a-development-branch`'s test-verification step —
+right before presenting the merge/PR options, not on every turn (a full
+Sonar analysis is much slower than the per-turn `mvn verify` gate above).
+
+This is advisory only: it reports the quality gate result and dashboard
+link, but never blocks finishing the branch on its own — weigh the result
+the same way you'd weigh any other reviewer finding.
+
+Invoke it by path (`bash .claude/scripts/run-sonar-scan.sh`) — the script
+sources `.env` internally, so the invoking command itself never spells out
+`.env` and won't trip the `block-dangerous.sh` credential-file guard. Don't
+inline the `source .env`/token-reading steps directly into a shell command
+of your own — that's what the guard is specifically watching for.
