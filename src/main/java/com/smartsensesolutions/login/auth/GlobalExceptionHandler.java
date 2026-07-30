@@ -11,7 +11,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LoginValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(LoginValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.validation(ex.getViolations()));
+                .body(ErrorResponse.validation("Login request failed validation.", ex.getViolations()));
     }
 
     @ExceptionHandler(AuthenticationFailedException.class)

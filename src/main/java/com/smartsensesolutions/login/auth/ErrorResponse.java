@@ -12,7 +12,7 @@ public record ErrorResponse(String errorCode, String message, List<String> viola
         return new ErrorResponse(errorCode, message, List.of());
     }
 
-    public static ErrorResponse validation(List<String> violations) {
-        return new ErrorResponse("VALIDATION_FAILED", "Login request failed validation.", violations);
+    public static ErrorResponse validation(String message, List<String> violations) {
+        return new ErrorResponse("VALIDATION_FAILED", message, violations);
     }
 }
