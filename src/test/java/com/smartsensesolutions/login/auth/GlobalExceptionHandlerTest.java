@@ -37,4 +37,30 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.LOCKED);
         assertThat(response.getBody().errorCode()).isEqualTo("ACCOUNT_LOCKED");
     }
+
+    @Test
+    void mapsSignupValidationExceptionTo400WithViolations() {
+        ResponseEntity<ErrorResponse> response =
+                handler.handleSignupValidation(new SignupValidationException(List.of("name is required")));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().errorCode()).isEqualTo("VALIDATION_FAILED");
+        assertThat(response.getBody().violations()).containsExactly("name is required");
+    }
+
+    @Test
+    void mapsEmailAlreadyExistsTo409() {
+        ResponseEntity<ErrorResponse> response = handler.handleEmailAlreadyExists(new EmailAlreadyExistsException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().errorCode()).isEqualTo("EMAIL_ALREADY_EXISTS");
+    }
+
+    @Test
+    void mapsRateLimitExceededTo429() {
+        ResponseEntity<ErrorResponse> response = handler.handleRateLimitExceeded(new RateLimitExceededException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(response.getBody().errorCode()).isEqualTo("RATE_LIMIT_EXCEEDED");
+    }
 }

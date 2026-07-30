@@ -22,3 +22,8 @@ login:
   lockout:
     max-attempts: 5
     duration-minutes: 15
+
+signup:
+  rate-limit:
+    max-attempts: 10
+    window-seconds: 60
