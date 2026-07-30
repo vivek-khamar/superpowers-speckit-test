@@ -29,6 +29,15 @@ public class SignupService {
             throw new SignupValidationException(violations);
         }
 
+        // Deliberately confirms account existence via a distinct 409, unlike
+        // LoginService's enumeration-resistant 401 (same status/body/timing
+        // whether the email is unknown or the password is wrong). Accepted
+        // tradeoff, not an oversight: FR-5 requires this exact response, it
+        // matches standard signup UX across virtually all major sites, and
+        // closing it would need an out-of-scope email-verification flow this
+        // codebase doesn't have. Lower severity than login-enumeration too --
+        // this doesn't help a credential-stuffing attack the way confirming
+        // a *valid password* would, only that an address is registered.
         if (userRepository.findByEmailIgnoreCase(request.email()).isPresent()) {
             throw new EmailAlreadyExistsException();
         }
