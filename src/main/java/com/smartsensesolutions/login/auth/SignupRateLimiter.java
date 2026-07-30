@@ -32,8 +32,14 @@ public class SignupRateLimiter {
 
         synchronized (attempts) {
             Instant cutoff = now.minus(window);
+            boolean prunedToEmpty = false;
             while (!attempts.isEmpty() && attempts.peekFirst().isBefore(cutoff)) {
                 attempts.pollFirst();
+                prunedToEmpty = attempts.isEmpty();
+            }
+
+            if (prunedToEmpty) {
+                attemptsByKey.remove(key, attempts);
             }
 
             if (attempts.size() >= maxAttempts) {

@@ -75,6 +75,29 @@ class SignupRequestValidatorTest {
     }
 
     @Test
+    void nameOverMaxLengthIsAViolation() {
+        SignupRequest request = new SignupRequest("A".repeat(256), "ada@example.com", "StrongPass1!");
+
+        assertThat(validator.validate(request)).contains("name must be at most 255 characters");
+    }
+
+    @Test
+    void emailOverMaxLengthIsAViolation() {
+        String longLocalPart = "a".repeat(250);
+        SignupRequest request = new SignupRequest("Ada Lovelace", longLocalPart + "@example.com", "StrongPass1!");
+
+        assertThat(validator.validate(request)).contains("email must be at most 255 characters");
+    }
+
+    @Test
+    void passwordOverMaxByteLengthIsAViolation() {
+        SignupRequest request = new SignupRequest(
+                "Ada Lovelace", "ada@example.com", "StrongPass1!" + "a".repeat(70));
+
+        assertThat(validator.validate(request)).contains("password must be at most 72 bytes");
+    }
+
+    @Test
     void allViolationsAreReportedTogetherNotJustTheFirst() {
         SignupRequest request = new SignupRequest("", "not-an-email", "short");
 

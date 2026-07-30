@@ -82,10 +82,26 @@ class SignupServiceTest {
     void mapsADatabaseUniqueConstraintViolationTo409NotA500() {
         when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("hashed-value");
-        when(userRepository.save(any(User.class))).thenThrow(new DataIntegrityViolationException("duplicate key"));
+        when(userRepository.save(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint \"ux_users_email\""));
 
         assertThatThrownBy(() -> signupService.signup(
                 new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!")))
                 .isInstanceOf(EmailAlreadyExistsException.class);
+    }
+
+    @Test
+    void rethrowsUnrelatedDataIntegrityViolationsInsteadOfMisreportingThemAsDuplicateEmail() {
+        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed-value");
+        DataIntegrityViolationException unrelated =
+                new DataIntegrityViolationException("value too long for type character varying(255)");
+        when(userRepository.save(any(User.class))).thenThrow(unrelated);
+
+        assertThatThrownBy(() -> signupService.signup(
+                new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!")))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .isNotInstanceOf(EmailAlreadyExistsException.class)
+                .isSameAs(unrelated);
     }
 }

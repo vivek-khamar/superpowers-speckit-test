@@ -2,6 +2,7 @@ package com.smartsensesolutions.login.auth;
 
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -15,18 +16,28 @@ public class SignupRequestValidator {
     private static final String SPECIAL_CHARACTERS = "!@#$%^&*()_+-=[]{};':\"\\|,.<>/?";
 
     private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_BYTES = 72;
+    private static final int MAX_NAME_LENGTH = 255;
+    private static final int MAX_EMAIL_LENGTH = 255;
 
     public List<String> validate(SignupRequest request) {
         List<String> violations = new ArrayList<>();
 
         if (isBlank(request.name())) {
             violations.add("name is required");
+        } else if (request.name().length() > MAX_NAME_LENGTH) {
+            violations.add("name must be at most " + MAX_NAME_LENGTH + " characters");
         }
 
         if (isBlank(request.email())) {
             violations.add("email is required");
-        } else if (!EMAIL_PATTERN.matcher(request.email()).matches()) {
-            violations.add("email must be a valid email address");
+        } else {
+            if (!EMAIL_PATTERN.matcher(request.email()).matches()) {
+                violations.add("email must be a valid email address");
+            }
+            if (request.email().length() > MAX_EMAIL_LENGTH) {
+                violations.add("email must be at most " + MAX_EMAIL_LENGTH + " characters");
+            }
         }
 
         if (isBlank(request.password())) {
@@ -52,6 +63,9 @@ public class SignupRequestValidator {
         }
         if (password.chars().noneMatch(c -> SPECIAL_CHARACTERS.indexOf(c) >= 0)) {
             violations.add("password must contain at least 1 special character from " + SPECIAL_CHARACTERS);
+        }
+        if (password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
+            violations.add("password must be at most " + MAX_PASSWORD_BYTES + " bytes");
         }
 
         return violations;

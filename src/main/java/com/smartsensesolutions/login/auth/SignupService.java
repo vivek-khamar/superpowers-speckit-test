@@ -38,9 +38,24 @@ public class SignupService {
         try {
             user = userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
+            if (!isEmailUniqueConstraintViolation(e)) {
+                throw e;
+            }
             throw new EmailAlreadyExistsException();
         }
 
         return SignupResponse.success(user);
+    }
+
+    private boolean isEmailUniqueConstraintViolation(Throwable e) {
+        Throwable cause = e;
+        while (cause != null) {
+            String message = cause.getMessage();
+            if (message != null && message.toLowerCase(java.util.Locale.ROOT).contains("ux_users_email")) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 }
