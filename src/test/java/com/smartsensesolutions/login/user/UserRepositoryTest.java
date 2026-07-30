@@ -7,6 +7,9 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
@@ -37,5 +40,38 @@ class UserRepositoryTest extends AbstractIntegrationTest {
     @Test
     void findByEmailIgnoreCaseReturnsEmptyForUnknownEmail() {
         assertThat(userRepository.findByEmailIgnoreCase("nobody@example.com")).isEmpty();
+    }
+
+    @Test
+    void persistingANewUserPopulatesCreatedAtAndUpdatedAtViaLifecycleCallbacks() {
+        User user = new User("timestamp-target@example.com", "hash", "Timestamp Target");
+
+        User saved = userRepository.saveAndFlush(user);
+
+        try {
+            assertThat(saved.getCreatedAt()).isNotNull();
+            assertThat(saved.getUpdatedAt()).isNotNull();
+            assertThat(saved.getUpdatedAt()).isEqualTo(saved.getCreatedAt());
+        } finally {
+            userRepository.deleteById(saved.getId());
+        }
+    }
+
+    @Test
+    void updatingAnExistingUserAdvancesUpdatedAtButNotCreatedAt() {
+        User user = new User("timestamp-update-target@example.com", "hash", "Timestamp Update Target");
+        User saved = userRepository.saveAndFlush(user);
+        Instant originalCreatedAt = saved.getCreatedAt();
+        Instant originalUpdatedAt = saved.getUpdatedAt();
+
+        try {
+            saved.recordFailure(Instant.now(), 5, Duration.ofMinutes(15));
+            User updated = userRepository.saveAndFlush(saved);
+
+            assertThat(updated.getCreatedAt()).isEqualTo(originalCreatedAt);
+            assertThat(updated.getUpdatedAt()).isAfterOrEqualTo(originalUpdatedAt);
+        } finally {
+            userRepository.deleteById(saved.getId());
+        }
     }
 }
