@@ -60,7 +60,8 @@ class SignupServiceTest {
 
     @Test
     void rejectsRequestFailingValidationBeforeTouchingRepository() {
-        assertThatThrownBy(() -> signupService.signup(new SignupRequest("", "", "")))
+        SignupRequest request = new SignupRequest("", "", "");
+        assertThatThrownBy(() -> signupService.signup(request))
                 .isInstanceOf(SignupValidationException.class);
 
         Mockito.verifyNoInteractions(userRepository, passwordEncoder);
@@ -71,8 +72,8 @@ class SignupServiceTest {
         User existing = User.existing(3L, "ada@example.com", "hash", "Ada", 0, null);
         when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> signupService.signup(
-                new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!")))
+        SignupRequest request = new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!");
+        assertThatThrownBy(() -> signupService.signup(request))
                 .isInstanceOf(EmailAlreadyExistsException.class);
 
         verify(userRepository, never()).save(any(User.class));
@@ -85,8 +86,8 @@ class SignupServiceTest {
         when(userRepository.save(any(User.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint \"ux_users_email\""));
 
-        assertThatThrownBy(() -> signupService.signup(
-                new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!")))
+        SignupRequest request = new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!");
+        assertThatThrownBy(() -> signupService.signup(request))
                 .isInstanceOf(EmailAlreadyExistsException.class);
     }
 
@@ -98,8 +99,8 @@ class SignupServiceTest {
                 new DataIntegrityViolationException("value too long for type character varying(255)");
         when(userRepository.save(any(User.class))).thenThrow(unrelated);
 
-        assertThatThrownBy(() -> signupService.signup(
-                new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!")))
+        SignupRequest request = new SignupRequest("Ada Lovelace", "ada@example.com", "StrongPass1!");
+        assertThatThrownBy(() -> signupService.signup(request))
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .isNotInstanceOf(EmailAlreadyExistsException.class)
                 .isSameAs(unrelated);

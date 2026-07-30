@@ -65,7 +65,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
         Instant originalUpdatedAt = saved.getUpdatedAt();
 
         try {
-            saved.recordFailure(Instant.now(), 5, Duration.ofMinutes(15));
+            saved.recordFailure(Instant.parse("2024-01-01T00:00:00Z"), 5, Duration.ofMinutes(15));
             User updated = userRepository.saveAndFlush(saved);
 
             assertThat(updated.getCreatedAt()).isEqualTo(originalCreatedAt);

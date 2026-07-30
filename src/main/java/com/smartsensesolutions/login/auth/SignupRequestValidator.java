@@ -19,6 +19,7 @@ public class SignupRequestValidator {
     private static final int MAX_PASSWORD_BYTES = 72;
     private static final int MAX_NAME_LENGTH = 255;
     private static final int MAX_EMAIL_LENGTH = 255;
+    private static final String CHARACTERS_SUFFIX = " characters";
 
     public List<String> validate(SignupRequest request) {
         List<String> violations = new ArrayList<>();
@@ -26,7 +27,7 @@ public class SignupRequestValidator {
         if (isBlank(request.name())) {
             violations.add("name is required");
         } else if (request.name().length() > MAX_NAME_LENGTH) {
-            violations.add("name must be at most " + MAX_NAME_LENGTH + " characters");
+            violations.add("name must be at most " + MAX_NAME_LENGTH + CHARACTERS_SUFFIX);
         }
 
         if (isBlank(request.email())) {
@@ -36,7 +37,7 @@ public class SignupRequestValidator {
                 violations.add("email must be a valid email address");
             }
             if (request.email().length() > MAX_EMAIL_LENGTH) {
-                violations.add("email must be at most " + MAX_EMAIL_LENGTH + " characters");
+                violations.add("email must be at most " + MAX_EMAIL_LENGTH + CHARACTERS_SUFFIX);
             }
         }
 
@@ -53,7 +54,7 @@ public class SignupRequestValidator {
         List<String> violations = new ArrayList<>();
 
         if (password.length() < MIN_PASSWORD_LENGTH) {
-            violations.add("password must be at least " + MIN_PASSWORD_LENGTH + " characters");
+            violations.add("password must be at least " + MIN_PASSWORD_LENGTH + CHARACTERS_SUFFIX);
         }
         if (password.chars().noneMatch(Character::isUpperCase)) {
             violations.add("password must contain at least 1 uppercase letter");
