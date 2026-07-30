@@ -13,6 +13,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class SignupRateLimiter {
 
+    // Entries are never evicted -- unbounded growth over process lifetime as
+    // distinct keys accumulate is an accepted tradeoff of the in-memory design
+    // (FR-9). A correctness-safe eviction needs an out-of-band sweep (inline
+    // removal races with the same call's own write-back); deferred as a
+    // follow-up rather than risking the rate limiter's correctness here.
     private final ConcurrentHashMap<String, Deque<Instant>> attemptsByKey = new ConcurrentHashMap<>();
     private final Clock clock;
     private final int maxAttempts;
@@ -32,14 +37,8 @@ public class SignupRateLimiter {
 
         synchronized (attempts) {
             Instant cutoff = now.minus(window);
-            boolean prunedToEmpty = false;
             while (!attempts.isEmpty() && attempts.peekFirst().isBefore(cutoff)) {
                 attempts.pollFirst();
-                prunedToEmpty = attempts.isEmpty();
-            }
-
-            if (prunedToEmpty) {
-                attemptsByKey.remove(key, attempts);
             }
 
             if (attempts.size() >= maxAttempts) {
