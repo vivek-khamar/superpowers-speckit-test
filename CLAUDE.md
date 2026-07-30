@@ -18,6 +18,16 @@ back to the requirement that motivated it:
 - **Start of work:** transition the ticket to "In Progress" before the first
   commit — don't leave it sitting at whatever status it had before work
   started (e.g. "To Do", or a stale "Done" from an earlier pass).
+- **New worktree:** immediately after `superpowers:using-git-worktrees`
+  creates the worktree, run `bash .claude/scripts/sync-worktree-env.sh`
+  from inside it. Git worktrees never share untracked files with each
+  other or the main checkout, no matter where the file physically lives —
+  so a gitignored `.env` (Sonar credentials, etc.) configured once in an
+  earlier ticket's worktree silently stops applying to every worktree
+  created afterward. This script copies it from the main repo root if one
+  exists there; safe to run even when there's nothing to copy. Keep the
+  canonical `.env` at the main repo root (not inside any single worktree)
+  so it survives that worktree being cleaned up later.
 - **Commits:** prefix the subject with the ticket key, e.g.
   `feat(DEMO-1): add rate limiting filter`.
 - **PR body:** must include, in this order: a summary, a link to the Jira
